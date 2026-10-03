@@ -2,11 +2,14 @@
 node_modules/
 __pycache__/
 *.pyc
+.venv/
 
-# Local Video Renders & Temporary Chunks
+# Output directories (generated, not committed)
 walkthrough-output/
 flagship-output/
 frames_analysis/
+
+# Temporary render artifacts
 *.webm
 *.log
 
@@ -15,3 +18,8 @@ frames_analysis/
 Thumbs.db
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# Agent workspace
+.agents/

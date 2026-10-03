@@ -3,152 +3,146 @@ name: walkthrough
 description: >
   Autonomously inspects any local web repository, starts its development server,
   scripts an interactive product journey, records native 1080p 60fps screen video
-  with an authentic MacBook cursor and clamped cinematic camera zooms via Playwright,
+  with a physics-modeled macOS cursor and clamped cinematic camera zooms via Playwright,
   synthesizes neural voiceover via edge-tts, burns broadcast subtitles, and delivers
   a polished product walkthrough demo video.
-  Trigger: /walkthrough, "make a walkthrough video", "record product demo", "walkthrough this project", or "screen record this app".
-argument-hint: "[optional: target route, focus feature, or duration]"
-license: MIT
+  Trigger: /walkthrough, "make a walkthrough video", "record product demo",
+  "walkthrough this project", or "screen record this app".
 ---
 
-# Walkthrough: Autonomous Product Demo & Screen Recording Engine
+# walkthrough
 
-> **Turn any local codebase into an elite, ScreenStudio-grade product walkthrough in one command.**
+Autonomous product demo videos from live web applications. Not a screen recorder, not a
+slideshow generator: a **storyboard-driven pipeline** that inspects your codebase, launches
+it, drives a browser with physics-based cursor and camera, narrates it, and composites a
+ScreenStudio-grade demo.
 
-The **Walkthrough Engine** provides an autonomous end-to-end pipeline that inspects your application code, spins up the local dev server, drives a headless browser with a physics-modeled MacBook pointer, executes realistic user interactions (gliding clicks, typing, toggles), synthesizes synchronized neural voiceover, and composes an edited 1080p demo video with clamped camera zooms and broadcast-quality subtitles.
+## When this skill
 
----
+- Record a product walkthrough of a web app — **yes**.
+- Create a demo video showing an interactive feature — **yes**.
+- Generate a polished intro + walkthrough + outro video from a storyboard — **yes**.
+- Record native desktop apps, Electron, terminal-only CLIs — **no** (browser only).
+- Edit existing video footage — **no** (this generates from scratch).
 
-## Slash Command Usage
+## Prerequisites
 
-```text
-/walkthrough
-/walkthrough showcase real-time telemetry filters and canary deployment
-/walkthrough [duration: 30s] [focus: settings and auth flow]
+The agent must verify these are installed before running:
+
+```bash
+node --version    # >= 18
+python --version  # >= 3.9
+ffmpeg -version   # with libass/subtitles filter
 ```
 
----
+If not installed, guide the user to install them.
 
-## Architectural Comparison: Skill vs. MCP Server
+## Pipeline — in order
 
-| Dimension | Agent Skill (Primary Engine) | MCP Server (OS Screen Extension) |
-| :--- | :--- | :--- |
-| **Execution Model** | Autonomous orchestration via CLI scripts | Long-running background daemon process |
-| **Browser Control** | Native Playwright context (`recordVideo: 1080p`) | External screen grabber / desktop window capture |
-| **Cursor Physics** | Injected SVG MacBook pointer with SmootherStep | OS hardware mouse capture (often coarse/fast) |
-| **Camera Zooms** | In-DOM 3D transforms clamped to viewport | Post-crop digital scaling (loses vector sharpness) |
-| **Portability** | Zero system daemon dependencies; pure Node + Python | Machine-dependent OS permissions & capture drivers |
-| **Best Used For** | **95% of use cases**: Next.js, Vite, React, Vue, HTML, Streamlit | Desktop native apps (VSCode window, terminal GUI) |
+### 1 · Inspect the codebase
 
----
+Read `package.json`, `vite.config.*`, `next.config.*`, or equivalent to identify:
+- The dev server command (`npm run dev`, `npx vite`, etc.)
+- The local URL (`http://localhost:3000`, `http://localhost:5173`, etc.)
+- Key interactive elements (forms, buttons, navigation)
 
-## The 5-Step Autonomous Walkthrough Pipeline
+### 2 · Write the storyboard
 
-```
-1. Codebase Introspection
-        ↓
-2. Storyboard & Narration Contract (storyboard.json)
-        ↓
-3. Neural Voiceover & Dynamic Timing Calculation (edge-tts + ffprobe)
-        ↓
-4. Automated Browser Recording (Playwright + macOS Cursor + Camera Engine)
-        ↓
-5. Mathematical Compositing (FFmpeg Dissolves + Burned Subtitles + Hero Poster)
-```
-
----
-
-## Step 1: Codebase Introspection
-
-When triggered with `/walkthrough`, the agent inspects the workspace before touching the browser:
-1. **Detect Framework & Start Script**: Inspect `package.json`, `pyproject.toml`, or `Makefile`.
-   - `npm run dev`, `pnpm dev`, `yarn dev`
-   - `python -m uvicorn app:main --port 8000`
-   - `streamlit run app.py`
-2. **Identify Port & Entry URL**: Default ports: `5173` (Vite), `3000` (Next.js), `8000` (FastAPI), `8501` (Streamlit).
-3. **Discover Key Interactive Elements**: Scan templates/components to identify:
-   - Primary metric counters or dashboards
-   - Tabs and filters (e.g. `button#tab-30d`)
-   - Search inputs (e.g. `input#search`)
-   - High-impact action buttons (e.g. `button#btn-deploy`)
-
----
-
-## Step 2: Storyboard & Script Contract
-
-The agent generates a structured `storyboard.json` defining the narrative:
+Create a `storyboard.json` with steps that tell the story of the product:
 
 ```json
 {
-  "title": "Cloud Observability Platform",
-  "voiceGender": "Female",
-  "voice": "en-US-AvaMultilingualNeural",
+  "title": "Product Name — Feature Demo",
   "baseUrl": "http://localhost:5173",
   "outputDir": "./walkthrough-output",
   "steps": [
-    {
-      "desc": "Wide shot application overview",
-      "holdMs": 6000
-    },
-    {
-      "desc": "Filter analytics by 30-day window",
-      "selector": "button#tab-30d",
-      "action": "click",
-      "zoomOnClick": true,
-      "holdMs": 5200
-    },
-    {
-      "desc": "Search microservices",
-      "selector": "input#service-search",
-      "action": "type",
-      "text": "analytics",
-      "typeDelay": 85,
-      "holdMs": 2800
-    },
-    {
-      "desc": "Trigger deployment action",
-      "selector": "button#btn-deploy",
-      "action": "click",
-      "holdMs": 4200
-    }
+    { "desc": "Wide overview of landing page", "holdMs": 5000 },
+    { "desc": "Click primary CTA", "selector": "button#cta", "action": "click", "zoomOnClick": true, "holdMs": 4000 },
+    { "desc": "Fill in the form", "selector": "input#email", "action": "type", "text": "demo@example.com", "holdMs": 3000 }
   ]
 }
 ```
 
----
+**Rhythm rules** (from onetake): vary hold durations by ≥ 3× (2s quick cuts next to 6s holds).
+Never cut on a metronome — equal shot lengths read as slides.
 
-## Step 3: Neural Voiceover & Inter-Act Timing
+### 3 · Write narration script
 
-The agent synthesizes studio-grade neural voiceover clips using `edge-tts`:
-- **Female Voice**: `en-US-AvaMultilingualNeural` (vibrant, modern, conversational)
-- **Male Voice**: `en-US-AndrewMultilingualNeural` (authoritative, technical)
+Create narration entries in `engine/audio_synthesizer.py` FLAGSHIP_SCENES, or use edge-tts
+directly. The audio synthesizer:
+- Selects voice gender automatically (Ava for SaaS, Andrew for technical)
+- Inserts 500ms breathing pauses between acts
+- Exports `timing.json` with exact cut offsets for the compositor
 
-A clean `0.500s` silent breathing pause is placed between narrative acts. The exact audio duration of each clip is measured with `ffprobe` to compute millisecond-accurate visual transition points (`timing.json`) and synchronized `.srt` subtitles.
+### 4 · Record
 
----
+```bash
+node engine/record.js storyboard.json
+```
 
-## Step 4: Playwright Screen Recording with macOS Cursor Physics
+This launches Playwright with:
+- **Cursor overlay**: macOS pointer with SmootherStep glides and spring tracking
+- **Camera engine**: 1.14× zoom with clamped pan bounds
+- **1080p 60fps** via Playwright's `recordVideo`
 
-The agent launches Playwright with `cursor-overlay.js` and `camera-engine.js` injected:
-- **MacBook Cursor**: Exact Apple geometry (`M5.5 3.2V...`), dual-layer drop shadows, 1.6px white stroke, and 0.88 depression factor on click.
-- **SmootherStep Physics**: Ken Perlin's quintic polynomial ($6t^5 - 15t^4 + 10t^3$) with gentle quadratic Bezier arcs eliminates abrupt speed jumps.
-- **Clamped Cinematic Camera**: In-DOM 3D stage transforms (`scale: 1.14x`) clamped to `[-80, 80]px` pan to ensure peripheral headers and logos are never clipped.
-- **Fixed Overlay Isolation**: Floating toasts and modal dialogs are excluded from the transformed stage so they remain anchored to the true viewport.
+### 5 · Composite
 
----
+```bash
+python engine/compositor.py
+```
 
-## Step 5: Mathematical FFmpeg Compositing
+- Reads `timing.json` for mathematically-centered xfade offsets
+- Burns subtitles with `BorderStyle=3` semi-transparent boxes
+- Extracts hero poster at 3.0s
+- Outputs final MP4 with `faststart` for web streaming
 
-The final video is assembled with:
-1. **Inter-Act Crossfades**: `xfade=transition=fade:duration=0.35` centered precisely inside the 0.5s audio pause so visual dissolves never cut across active speech.
-2. **Zero-Overlap Subtitles**: Burned-in `.srt` subtitles styled with `FontSize=16`, `MarginV=26`, and semi-transparent bounding boxes (`BorderStyle=3`) that never collide with action buttons or toast notifications.
-3. **Hero Poster Frame**: Frame extracted at 3.0s as an uncompressed high-resolution JPEG poster (`walkthrough.jpg`).
+### 6 · Full demo pipeline
 
----
+```bash
+node bin/walkthrough.js demo
+```
 
-## Deliverables Checklist
+Runs steps 3→4→5 end-to-end for the flagship showcase.
 
-Every completed `/walkthrough` invocation produces:
-1. `walkthrough_showcase.mp4`: Final 1080p 60fps MP4 (H.264, AAC 192k, faststart enabled).
-2. `walkthrough_showcase.jpg`: Hero poster thumbnail.
-3. `timing.json` & `flagship_subtitles.srt`: Millisecond timeline manifest and closed captions.
+## Motion library
+
+`lib/motion.js` provides physics primitives as pure functions of time (`window.WM`):
+
+| Category | Functions |
+|----------|-----------|
+| Curves | `ease.*`, `tween`, `spring`, `springVel`, `ring`, `settle` |
+| Entrances | `wordRise`, `popIn`, `maskRise`, `typeOn` |
+| Carries | `morphRect`, `zoomThrough`, `iris` |
+| Camera | `camera`, `shake`, `drift` |
+| Util | `clamp`, `lerp`, `seg`, `spline`, `rng` |
+
+Everything is deterministic: `seek(t)` twice gives the same frame.
+
+## Hard rules
+
+- **The cause must be visible.** The cursor shows what triggers every reaction.
+- **Never let the frame always be in motion.** Rests make the bursts land.
+- **Small elements, big ground.** 70% background is the norm; full-bleed is one calm hold.
+- **Pause-centered dissolves.** Video cuts never interrupt active speech.
+- **Moves from the library, curves chosen by t80.** No hand-rolled easing constants.
+- **Drafts at 1080p30.** No 4K render before the cut is accepted.
+
+## Files
+
+| Path | Purpose |
+|------|---------|
+| `bin/walkthrough.js` | CLI entry point |
+| `engine/record.js` | Playwright recorder with cursor + camera |
+| `engine/cursor-overlay.js` | macOS cursor with spring physics |
+| `engine/camera-engine.js` | Keyed camera with clamped zoom |
+| `engine/audio_synthesizer.py` | edge-tts voiceover + timing manifest |
+| `engine/compositor.py` | FFmpeg xfade compositor + subtitles |
+| `lib/motion.js` | Physics motion primitives |
+| `templates/act1_intro.html` | Intro composition template |
+| `templates/act3_outro.html` | Outro composition template |
+
+## Requires
+
+- `playwright` (npm) — browser automation
+- `edge-tts` (pip) — neural voiceover
+- `ffmpeg` / `ffprobe` — video compositing

@@ -1,7 +1,7 @@
 {
   "name": "walkthrough",
-  "version": "1.0.0",
-  "description": "Autonomous Codebase Walkthrough, Live Screen Recording & Demo Video Generator",
+  "version": "2.0.0",
+  "description": "Autonomous product demo video generator — physics cursor, cinematic camera, neural voiceover",
   "main": "engine/record.js",
   "bin": {
     "walkthrough": "bin/walkthrough.js"
@@ -10,30 +10,27 @@
     "demo": "node bin/walkthrough.js demo",
     "record": "node engine/record.js",
     "audio": "python engine/audio_synthesizer.py",
-    "stitch": "python engine/compositor.py",
+    "render": "python engine/compositor.py",
     "test": "node bin/walkthrough.js help"
   },
   "keywords": [
     "walkthrough",
     "screen-recording",
+    "product-demo",
     "playwright",
     "edge-tts",
     "ffmpeg",
-    "product-demo",
+    "motion-design",
+    "cursor-physics",
+    "cinematic-camera",
     "ai-agent",
-    "gemini",
-    "antigravity",
-    "claude-skill",
-    "screenstudio"
+    "antigravity-skill"
   ],
   "author": "Narain Karti",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/narain-karti/Walkthrough.git"
-  },
-  "bugs": {
-    "url": "https://github.com/narain-karti/Walkthrough/issues"
   },
   "homepage": "https://github.com/narain-karti/Walkthrough#readme",
   "dependencies": {
