@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+
+# Local Video Renders & Temporary Chunks
+walkthrough-output/
+flagship-output/
+frames_analysis/
+*.webm
+*.log
+
+# System & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

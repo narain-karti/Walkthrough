@@ -1,0 +1,42 @@
+{
+  "name": "walkthrough",
+  "version": "1.0.0",
+  "description": "Autonomous Codebase Walkthrough, Live Screen Recording & Demo Video Generator",
+  "main": "engine/record.js",
+  "bin": {
+    "walkthrough": "bin/walkthrough.js"
+  },
+  "scripts": {
+    "demo": "node bin/walkthrough.js demo",
+    "record": "node engine/record.js",
+    "audio": "python engine/audio_synthesizer.py",
+    "stitch": "python engine/compositor.py",
+    "test": "node bin/walkthrough.js help"
+  },
+  "keywords": [
+    "walkthrough",
+    "screen-recording",
+    "playwright",
+    "edge-tts",
+    "ffmpeg",
+    "product-demo",
+    "ai-agent",
+    "gemini",
+    "antigravity",
+    "claude-skill",
+    "screenstudio"
+  ],
+  "author": "Narain Karti",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/narain-karti/Walkthrough.git"
+  },
+  "bugs": {
+    "url": "https://github.com/narain-karti/Walkthrough/issues"
+  },
+  "homepage": "https://github.com/narain-karti/Walkthrough#readme",
+  "dependencies": {
+    "playwright": "^1.63.0"
+  }
+}

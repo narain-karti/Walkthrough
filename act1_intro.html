@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus Pulse — Act 1: The Hook</title>
+  <style>
+    :root {
+      --bg: #09090b;
+      --card-bg: #121215;
+      --card-border: #222228;
+      --accent: #bfff62;
+      --accent-muted: rgba(191, 255, 98, 0.15);
+      --text: #fcfcfd;
+      --text-muted: #8e8e93;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    /* Subtle ambient mesh glow */
+    .ambient-glow {
+      position: absolute;
+      width: 800px;
+      height: 800px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(191, 255, 98, 0.08) 0%, transparent 70%);
+      top: -200px;
+      left: 560px;
+      pointer-events: none;
+    }
+    /* Top Badge */
+    .micro-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      margin-bottom: 24px;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards, fadeOutAndUp 0.7s ease-in 4.5s forwards;
+    }
+    /* Headline */
+    .headline-container {
+      text-align: center;
+      max-width: 1100px;
+      margin-bottom: 36px;
+      z-index: 10;
+      animation: fadeOutAndUp 0.7s ease-in 4.6s forwards;
+    }
+    .headline {
+      font-size: 58px;
+      font-weight: 850;
+      letter-spacing: -2px;
+      line-height: 1.1;
+      opacity: 0;
+      transform: translateY(24px);
+      animation: fadeInUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+    }
+    .capsule-lime {
+      background: var(--accent);
+      color: #09090b;
+      padding: 2px 16px;
+      border-radius: 12px;
+      display: inline-block;
+      letter-spacing: -1.5px;
+    }
+    .subhead {
+      font-size: 20px;
+      color: var(--text-muted);
+      margin-top: 14px;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.6s forwards;
+    }
+    /* 3D Browser Stage */
+    .viewport-3d {
+      perspective: 1400px;
+      width: 1280px;
+      height: 640px;
+      position: relative;
+      z-index: 20;
+    }
+    .browser-chassis {
+      width: 100%;
+      height: 100%;
+      background: #121215;
+      border-radius: 14px;
+      border: 1px solid #2a2a32;
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transform: rotateX(10deg) rotateY(-6deg) scale(0.92);
+      transform-origin: center center;
+      transition: all 1.8s cubic-bezier(0.2, 0.0, 0.2, 1.0);
+    }
+    /* Browser Titlebar */
+    .browser-header {
+      height: 42px;
+      background: #18181c;
+      border-bottom: 1px solid #222228;
+      display: flex;
+      align-items: center;
+      padding: 0 18px;
+      gap: 14px;
+    }
+    .mac-dots {
+      display: flex;
+      gap: 7px;
+    }
+    .mac-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ff5f56; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #27c93f; }
+    .browser-url-pill {
+      background: #121215;
+      border: 1px solid #282830;
+      border-radius: 6px;
+      padding: 4px 18px;
+      font-size: 12px;
+      color: #a1a1aa;
+      font-family: monospace;
+      margin: 0 auto;
+    }
+    /* Inner App Mockup */
+    .browser-content {
+      flex: 1;
+      background: #09090b;
+      position: relative;
+      overflow: hidden;
+    }
+    .browser-content iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    /* Camera Dive Animation (Starts at 5.0s) */
+    .camera-dive {
+      animation: diveIntoScreen 2.2s cubic-bezier(0.25, 1, 0.5, 1) 5.0s forwards;
+    }
+    @keyframes diveIntoScreen {
+      0% {
+        transform: rotateX(10deg) rotateY(-6deg) scale(0.92);
+        opacity: 1;
+      }
+      70% {
+        transform: rotateX(0deg) rotateY(0deg) scale(1.48) translate3d(0, 40px, 0);
+        opacity: 1;
+      }
+      100% {
+        transform: rotateX(0deg) rotateY(0deg) scale(1.68) translate3d(0, 58px, 0);
+        opacity: 1;
+      }
+    }
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes fadeOutAndUp {
+      0% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-30px);
+        pointer-events: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient-glow"></div>
+
+  <div class="micro-badge">
+    <span>●</span> Enterprise Observability Engine
+  </div>
+
+  <div class="headline-container">
+    <h1 class="headline">Cloud telemetry is fragmented.<br><span class="capsule-lime">We built Nexus Pulse.</span></h1>
+    <p class="subhead">Sub-millisecond latency tracking across 14 global Kubernetes edge clusters.</p>
+  </div>
+
+  <div class="viewport-3d">
+    <div id="chassis" class="browser-chassis camera-dive">
+      <div class="browser-header">
+        <div class="mac-dots">
+          <div class="mac-dot dot-red"></div>
+          <div class="mac-dot dot-yellow"></div>
+          <div class="mac-dot dot-green"></div>
+        </div>
+        <div class="browser-url-pill">https://nexus-pulse.internal/fleet</div>
+      </div>
+      <div class="browser-content">
+        <iframe src="app/index.html"></iframe>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
