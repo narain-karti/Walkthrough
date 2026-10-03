@@ -85,22 +85,46 @@ def main():
         f"Shadow=0,Alignment=2,MarginV=26'"
     )
 
-    run_cmd([
-        "ffmpeg", "-y",
-        "-i", joined_video,
-        "-i", audio_file,
-        "-vf", subtitle_filter,
-        "-map", "0:v",
-        "-map", "1:a",
-        "-c:v", "libx264",
-        "-crf", "18",
-        "-preset", "fast",
-        "-c:a", "aac",
-        "-b:a", "192k",
-        "-pix_fmt", "yuv420p",
-        "-movflags", "+faststart",
-        final_output
-    ])
+    sfx_file = os.path.join(flagship_dir, "flagship_sfx.wav")
+    has_sfx = os.path.exists(sfx_file)
+
+    if has_sfx:
+        print(f"[Walkthrough Compositor] Layering acoustic sound effects: {sfx_file}")
+        filter_complex = f"[0:v]{subtitle_filter}[vout];[1:a][2:a]amix=inputs=2:duration=first:weights=1.0 0.85[aout]"
+        run_cmd([
+            "ffmpeg", "-y",
+            "-i", joined_video,
+            "-i", audio_file,
+            "-i", sfx_file,
+            "-filter_complex", filter_complex,
+            "-map", "[vout]",
+            "-map", "[aout]",
+            "-c:v", "libx264",
+            "-crf", "18",
+            "-preset", "fast",
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart",
+            final_output
+        ])
+    else:
+        run_cmd([
+            "ffmpeg", "-y",
+            "-i", joined_video,
+            "-i", audio_file,
+            "-vf", subtitle_filter,
+            "-map", "0:v",
+            "-map", "1:a",
+            "-c:v", "libx264",
+            "-crf", "18",
+            "-preset", "fast",
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart",
+            final_output
+        ])
 
     # 4. Extract iconic hero poster from Act 1 at 3.0s
     run_cmd([

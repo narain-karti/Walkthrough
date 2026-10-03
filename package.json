@@ -10,8 +10,11 @@
     "demo": "node bin/walkthrough.js demo",
     "record": "node engine/record.js",
     "audio": "python engine/audio_synthesizer.py",
+    "sfx": "python engine/sfx_palette.py --demo flagship-output/flagship_sfx.wav",
+    "scenes": "node engine/render_scenes.js",
     "render": "python engine/compositor.py",
-    "test": "node bin/walkthrough.js help"
+    "verify": "python engine/verify.py flagship-output/flagship_showcase.mp4 --shots 0,8.2,14.0,18.4,24.5",
+    "test": "node test/motion.test.js"
   },
   "keywords": [
     "walkthrough",

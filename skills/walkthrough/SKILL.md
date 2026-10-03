@@ -4,30 +4,46 @@ description: >
   Autonomously inspects any local web repository, starts its development server,
   scripts an interactive product journey, records native 1080p 60fps screen video
   with a physics-modeled macOS cursor and clamped cinematic camera zooms via Playwright,
-  synthesizes neural voiceover via edge-tts, burns broadcast subtitles, and delivers
-  a polished product walkthrough demo video.
+  synthesizes neural voiceover via edge-tts, generates tactile acoustic sound effects
+  in an impulse reverb room, burns broadcast subtitles, and delivers a polished
+  product walkthrough demo video.
   Trigger: /walkthrough, "make a walkthrough video", "record product demo",
   "walkthrough this project", or "screen record this app".
 ---
 
-# walkthrough
+# Walkthrough
 
-Autonomous product demo videos from live web applications. Not a screen recorder, not a
-slideshow generator: a **storyboard-driven pipeline** that inspects your codebase, launches
-it, drives a browser with physics-based cursor and camera, narrates it, and composites a
-ScreenStudio-grade demo.
+Autonomous, high-production product demo videos from live web applications. Walkthrough fuses
+**real browser automation** (Playwright with physics-driven macOS cursor and camera), **onetake physics
+and acoustic sound synthesis** (39 motion primitives, frame-by-frame shutter blur, tactile SFX in an
+impulse room, quality oracle), and **brag editorial polish** (3-Act storytelling, Swiss typography,
+pause-centered camera dissolves).
 
-## When this skill
+```
+   ┌───────────────────┐     ┌─────────────────────┐     ┌───────────────────────┐
+   │   ACT 1: HOOK     │ ──► │  ACT 2: WALKTHROUGH │ ──► │     ACT 3: OUTRO      │
+   │ Editorial 3D Card │     │ Live App + Cursor   │     │ Receipt + Call to Act │
+   └───────────────────┘     └─────────────────────┘     └───────────────────────┘
+             │                          │                            │
+             └─────────────────── Math xfade ────────────────────────┘
+```
+
+---
+
+## When to use this skill
 
 - Record a product walkthrough of a web app — **yes**.
 - Create a demo video showing an interactive feature — **yes**.
-- Generate a polished intro + walkthrough + outro video from a storyboard — **yes**.
-- Record native desktop apps, Electron, terminal-only CLIs — **no** (browser only).
-- Edit existing video footage — **no** (this generates from scratch).
+- Generate an intro + walkthrough + outro video with voiceover, SFX, and subtitles — **yes**.
+- Audit demo pacing, rhythm, stillness, and audio with the quality oracle — **yes**.
+- Record native desktop apps, Electron, terminal-only CLIs — **no** (browser web apps only).
+- Edit existing third-party footage — **no** (generates from live code and DOM).
+
+---
 
 ## Prerequisites
 
-The agent must verify these are installed before running:
+The agent verifies these before running:
 
 ```bash
 node --version    # >= 18
@@ -35,114 +51,138 @@ python --version  # >= 3.9
 ffmpeg -version   # with libass/subtitles filter
 ```
 
-If not installed, guide the user to install them.
+Dependencies in repository:
+- `npm install` (Playwright)
+- `pip install -r requirements.txt` (edge-tts, numpy, scipy, Pillow)
 
-## Pipeline — in order
+---
+
+## Autonomous Pipeline
 
 ### 1 · Inspect the codebase
+Read `package.json`, `vite.config.*`, or `next.config.*` to locate:
+- Dev server command (`npm run dev`, `npm start`, etc.)
+- Target local URL (`http://localhost:5173`, `http://localhost:3000`)
+- Key interactive selectors (`button#cta`, `input#search`, etc.)
 
-Read `package.json`, `vite.config.*`, `next.config.*`, or equivalent to identify:
-- The dev server command (`npm run dev`, `npx vite`, etc.)
-- The local URL (`http://localhost:3000`, `http://localhost:5173`, etc.)
-- Key interactive elements (forms, buttons, navigation)
-
-### 2 · Write the storyboard
-
-Create a `storyboard.json` with steps that tell the story of the product:
-
+### 2 · Write the Storyboard (`storyboard.json`)
 ```json
 {
-  "title": "Product Name — Feature Demo",
+  "title": "Nexus Pulse — Observability Walkthrough",
   "baseUrl": "http://localhost:5173",
   "outputDir": "./walkthrough-output",
   "steps": [
-    { "desc": "Wide overview of landing page", "holdMs": 5000 },
-    { "desc": "Click primary CTA", "selector": "button#cta", "action": "click", "zoomOnClick": true, "holdMs": 4000 },
-    { "desc": "Fill in the form", "selector": "input#email", "action": "type", "text": "demo@example.com", "holdMs": 3000 }
+    { "desc": "Wide overview of cluster metrics", "holdMs": 5000 },
+    { "desc": "Select thirty-day window", "selector": "button#range-30d", "action": "click", "zoomOnClick": true, "holdMs": 4000 },
+    { "desc": "Filter analytics workers", "selector": "input#query", "action": "type", "text": "analytics-worker", "holdMs": 3500 },
+    { "desc": "Trigger canary deployment", "selector": "button#deploy", "action": "click", "zoomOnClick": true, "holdMs": 5000 }
   ]
 }
 ```
 
-**Rhythm rules** (from onetake): vary hold durations by ≥ 3× (2s quick cuts next to 6s holds).
-Never cut on a metronome — equal shot lengths read as slides.
+**Rhythm rules**: Vary step hold durations by ≥ 3× (e.g. 2.5s quick actions next to 6.0s holds). Never cut on a metronome.
 
-### 3 · Write narration script
+### 3 · Synthesize Neural Narration
+```bash
+python engine/audio_synthesizer.py
+```
+- Selects persona (`AvaMultilingualNeural` for SaaS, `AndrewMultilingualNeural` for technical infrastructure)
+- Automatically inserts 500ms breathing pauses between acts
+- Exports `flagship-output/timing.json` with exact millisecond timestamps and `flagship_subtitles.srt`
 
-Create narration entries in `engine/audio_synthesizer.py` FLAGSHIP_SCENES, or use edge-tts
-directly. The audio synthesizer:
-- Selects voice gender automatically (Ava for SaaS, Andrew for technical)
-- Inserts 500ms breathing pauses between acts
-- Exports `timing.json` with exact cut offsets for the compositor
+### 4 · Synthesize Acoustic Sound Effects (SFX)
+```bash
+python engine/sfx_palette.py --events flagship-output/events.json --dur 32 --out flagship-output/flagship_sfx.wav
+# Or generate standalone demonstration palette:
+python engine/sfx_palette.py --demo flagship-output/flagship_sfx.wav
+```
+- Physical materials: `wood` (clicks/keys), `air` (zooms/whooshes), `glass` (chimes/reveals), `sub` (impacts)
+- Shared acoustic impulse room: 0.85s T60 stereo reverb tail keeps all sounds tactile and grounded
 
-### 4 · Record
-
+### 5 · Record Browser Session
 ```bash
 node engine/record.js storyboard.json
 ```
+- Injects `engine/cursor-overlay.js`: macOS pointer with SmootherStep glide kinematics and spring-damped tracking
+- Injects `engine/camera-engine.js`: 1.14× zoom with viewport pan clamping
+- Captures 1080p 60fps video via Playwright
 
-This launches Playwright with:
-- **Cursor overlay**: macOS pointer with SmootherStep glides and spring tracking
-- **Camera engine**: 1.14× zoom with clamped pan bounds
-- **1080p 60fps** via Playwright's `recordVideo`
+### 6 · Render Editorial Scenes
+```bash
+node engine/render_scenes.js
+```
+- Records `templates/act1_intro.html` (Hook) and `templates/act3_outro.html` (Receipt) at native 1080p
 
-### 5 · Composite
-
+### 7 · Master Compositing
 ```bash
 python engine/compositor.py
 ```
+- Mathematically centers xfade camera dissolves inside the 500ms voiceover breathing pauses
+- Mixes voiceover + synthetic SFX room track
+- Burns crisp subtitles with `BorderStyle=3` semi-transparent backing
+- Writes web-optimized faststart MP4 and extracts hero poster at 3.0s
 
-- Reads `timing.json` for mathematically-centered xfade offsets
-- Burns subtitles with `BorderStyle=3` semi-transparent boxes
-- Extracts hero poster at 3.0s
-- Outputs final MP4 with `faststart` for web streaming
+### 8 · Verify with Quality Oracle
+```bash
+python engine/verify.py flagship-output/flagship_showcase.mp4 --shots 0,8.2,14.0,18.4,24.5
+```
+- **cadence**: Verifies coefficient of variation across shot lengths (CV >= 0.20)
+- **rest**: Confirms frame stillness (>= 25% dead-still, >= 1.0s quiet rest)
+- **audio**: Confirms peak <= -3 dBFS, zero clipped samples, >= 15% quiet frames
+- **energy**: Generates ASCII frame energy map
 
-### 6 · Full demo pipeline
+---
+
+## CLI Reference
 
 ```bash
-node bin/walkthrough.js demo
+# Complete 3-Act showcase demo end-to-end
+walkthrough demo
+
+# Record live browser from storyboard
+walkthrough run storyboard.json
+
+# Synthesize neural voiceover
+walkthrough audio
+
+# Generate acoustic sound effects
+walkthrough sfx [out.wav]
+
+# Render Act 1 and Act 3 templates
+walkthrough scenes
+
+# Stitch final video with xfade dissolves & subtitles
+walkthrough composite
+
+# Audit video quality with oracle
+walkthrough verify <video.mp4> [--shots t0,t1,...]
+
+# Render HTML composition with 180° shutter motion blur
+walkthrough shutter <comp.html> [--fps 30] [--out film.mp4]
 ```
 
-Runs steps 3→4→5 end-to-end for the flagship showcase.
+---
 
-## Motion library
+## Motion Physics Library (`lib/motion.js` v2.0.0)
 
-`lib/motion.js` provides physics primitives as pure functions of time (`window.WM`):
+Pure functions of time available under `window.WM` (browser) and `require('./lib/motion')` (Node):
 
-| Category | Functions |
-|----------|-----------|
-| Curves | `ease.*`, `tween`, `spring`, `springVel`, `ring`, `settle` |
-| Entrances | `wordRise`, `popIn`, `maskRise`, `typeOn` |
-| Carries | `morphRect`, `zoomThrough`, `iris` |
-| Camera | `camera`, `shake`, `drift` |
-| Util | `clamp`, `lerp`, `seg`, `spline`, `rng` |
+| Category | Primitives |
+|----------|------------|
+| **Curves** | `ease.*`, `bezier`, `tween`, `t80`, `spring`, `springVel`, `ring`, `settle`, `spline`, `rng` |
+| **Entrances** | `wordRise`, `letterDrop`, `popIn`, `liftOut`, `maskRise`, `typeOn`, `tick`, `flyThrough` |
+| **Carries** | `morphRect`, `iris`, `zoomThrough`, `hop`, `gather`, `ribbon`, `seal`, `staccato` |
+| **Contact** | `impact`, `impactSplit`, `press`, `cursor`, `squash`, `sim.{magnet, follow, jelly, verlet}` |
+| **Camera** | `camera`, `view`, `dof`, `whip`, `shake`, `drift`, `lattice`, `project`, `unproject`, `projectBox`, `screenTravel` |
+| **Fluid** | `swiftSpring`, `lightField`, `ripple`, `silk`, `carouselLoop` |
 
-Everything is deterministic: `seek(t)` twice gives the same frame.
+---
 
-## Hard rules
+## Hard Rules
 
-- **The cause must be visible.** The cursor shows what triggers every reaction.
-- **Never let the frame always be in motion.** Rests make the bursts land.
-- **Small elements, big ground.** 70% background is the norm; full-bleed is one calm hold.
-- **Pause-centered dissolves.** Video cuts never interrupt active speech.
-- **Moves from the library, curves chosen by t80.** No hand-rolled easing constants.
-- **Drafts at 1080p30.** No 4K render before the cut is accepted.
-
-## Files
-
-| Path | Purpose |
-|------|---------|
-| `bin/walkthrough.js` | CLI entry point |
-| `engine/record.js` | Playwright recorder with cursor + camera |
-| `engine/cursor-overlay.js` | macOS cursor with spring physics |
-| `engine/camera-engine.js` | Keyed camera with clamped zoom |
-| `engine/audio_synthesizer.py` | edge-tts voiceover + timing manifest |
-| `engine/compositor.py` | FFmpeg xfade compositor + subtitles |
-| `lib/motion.js` | Physics motion primitives |
-| `templates/act1_intro.html` | Intro composition template |
-| `templates/act3_outro.html` | Outro composition template |
-
-## Requires
-
-- `playwright` (npm) — browser automation
-- `edge-tts` (pip) — neural voiceover
-- `ffmpeg` / `ffprobe` — video compositing
+1. **The cause must be visible**: The cursor or interaction trigger must lead every reaction on screen.
+2. **Never cut on a metronome**: Vary shot durations by at least 3× so the video has natural breathing cadence.
+3. **Never let the frame always be in motion**: Stillness makes the bursts land.
+4. **Pause-centered dissolves**: Video cuts occur inside the 500ms voiceover breathing pauses; never cut across active speech.
+5. **Shared acoustic room**: Sound effects share a unified impulse reverb environment; never use disconnected dry sine beeps.
+6. **Deterministic execution**: `seek(t)` called twice always produces the identical frame.
