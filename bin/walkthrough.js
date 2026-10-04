@@ -33,6 +33,7 @@ function showHelp() {
   \x1b[36mverify\x1b[0m <film.mp4>         Run quality oracle (cadence rhythm, rest, audio, energy)
   \x1b[36mshutter\x1b[0m <comp.html>       Frame-by-frame renderer with real shutter motion blur
   \x1b[36mdemo\x1b[0m                  Run the complete flagship 3-Act showcase demo end-to-end
+  \x1b[36minstall\x1b[0m [--global|--check] Configure Walkthrough for Claude Code, Cursor, Windsurf, Antigravity
   \x1b[36mhelp\x1b[0m                  Display this reference manual
 
 \x1b[1mOPTIONS:\x1b[0m
@@ -154,6 +155,19 @@ switch (command) {
     console.log(`\x1b[1m\x1b[32m[Walkthrough]\x1b[0m Rendering with real shutter motion blur: ${compHtml}`);
     const shutProc = spawn(py, [path.resolve(__dirname, '../engine/renderer.py'), compHtml, ...extra], { stdio: 'inherit' });
     shutProc.on('exit', (code) => process.exit(code || 0));
+    break;
+  }
+
+  case 'install': {
+    const { installGlobal, installProject, checkDependencies } = require('../engine/install');
+    if (args.includes('--check')) {
+      checkDependencies();
+    } else if (args.includes('--global') || args.includes('-g')) {
+      installGlobal();
+    } else {
+      installGlobal();
+      installProject(process.cwd());
+    }
     break;
   }
 

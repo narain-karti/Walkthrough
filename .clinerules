@@ -1,0 +1,11 @@
+# Cline / Roo Code Rules
+
+## Walkthrough Video Generation
+When asked to create a product demo, walkthrough video, pitch, or explainer:
+1. Inspect package.json / start command and target URL.
+2. Select mode: `walkthrough` (tutorial), `explainer` (concept + proof), or `pitch` (15-30s launch teaser).
+3. Author `storyboard.json` with semantic selectors, actions, hold durations, and `waitFor` conditions.
+4. Commands:
+   - `walkthrough plan storyboard.json` -> Validate schema
+   - `walkthrough run storyboard.json` -> Record browser session with physics cursor and camera
+   - `walkthrough verify <video.mp4> --approve-visual` -> Oracle quality audit

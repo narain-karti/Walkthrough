@@ -1,0 +1,23 @@
+---
+description: Autonomous product demo video generator — physics cursor, cinematic camera, neural voiceover, and acoustic SFX
+globs: *
+alwaysApply: false
+---
+
+# Walkthrough for Cursor Agent
+
+Use the Walkthrough engine to autonomously generate high-production product demo videos.
+
+## Workflow
+1. Inspect the web application in this repo (package.json, start command, target URL e.g. http://localhost:5173 or 3000).
+2. Choose the right mode:
+   - "walkthrough": Complete real UI feature demo / tutorial.
+   - "explainer": Concept + UI proof with designed interstitials.
+   - "pitch": High-impact 15-30s claim -> proof -> CTA teaser.
+3. Write `storyboard.json` (version 3):
+   - title, mode, baseUrl, outputDir ("./walkthrough-output").
+   - steps with selector, action ("click" | "type" | "press" | "hover" | "select"), holdMs, waitFor outcome.
+4. Execute:
+   - `walkthrough plan storyboard.json` (validate)
+   - `walkthrough run storyboard.json` (record)
+   - `walkthrough verify walkthrough-output/raw_walkthrough.mp4 --approve-visual` (review)

@@ -125,6 +125,7 @@ Fix failed outcomes, cursor/UI mismatch, flashes, dropped/duplicated frames, tar
 ```bash
 walkthrough plan <storyboard.json>              # validate a v3 plan
 walkthrough run <storyboard.json>               # run capture and write events.json
+walkthrough install [--global|--check]          # universal multi-agent installer
 walkthrough audio                               # legacy flagship narration example
 walkthrough sfx [out.wav]                       # legacy sound-palette example
 walkthrough scenes                              # render flagship intro/outro example
@@ -132,6 +133,45 @@ walkthrough composite                           # assemble flagship example
 walkthrough verify <video.mp4> [--shots ...]    # baseline quality oracle
 walkthrough demo                                # internal showcase pipeline
 ```
+
+## Multi-Agent Compatibility & Setup
+
+Walkthrough is designed to be autonomously directed by **any modern AI coding agent**. The AI acts as the screenwriter and director (inspecting the app, planning the journey, authoring `storyboard.json`), while the Walkthrough CLI executes the headless browser, cursor physics, neural narration, SFX, and video rendering.
+
+### One-Command Universal Install
+
+Run from your terminal or inside any AI agent:
+
+```bash
+# Link CLI globally and auto-configure all detected AI tools (Antigravity, Claude Code, Cursor):
+walkthrough install --global
+
+# Configure the current project for all agents (Claude, Cursor, Windsurf, Copilot, Cline):
+walkthrough install
+
+# Verify all system prerequisites (Node, Python, FFmpeg, Playwright):
+walkthrough install --check
+```
+
+### Supported AI Agent Platforms
+
+| AI Agent | Integration Level | How It Works |
+| --- | --- | --- |
+| **Claude Code** | Global Skill + `CLAUDE.md` | Auto-installed into `~/.claude/skills/walkthrough/`. Type `/walkthrough` in Claude Code or prompt *"make a walkthrough video"*. |
+| **Cursor** | Global Skill + `.cursor/rules` | Auto-installed into `~/.cursor/skills/walkthrough/` and `.cursor/rules/walkthrough.mdc`. Cursor agent automatically activates for demo/walkthrough prompts. |
+| **Google Antigravity** | Global Skill + `.agents/` | Auto-installed into `~/.gemini/config/skills/walkthrough/`. Use `/walkthrough`, `@walkthrough`, or prompt directly. |
+| **Windsurf** | Project Rule (`.windsurfrules`) | Auto-configured via `.windsurfrules`. Cascade recognizes storyboard commands and autonomous recording. |
+| **GitHub Copilot** | Workspace (`.github/copilot-instructions.md`) | Copilot chat uses workspace instructions to write storyboards and trigger pipeline runs. |
+| **Cline / Roo Code** | Rule (`.clinerules`) | Autonomous execution via `.clinerules` contract. |
+
+### How AI Agents Direct the Video
+
+When an agent is asked to *"create a walkthrough demo of this app"*:
+1. **Inspection:** The agent reads `package.json`, detects the dev command (`npm run dev`) and target URL (`http://localhost:5173`).
+2. **Storyboarding:** The agent chooses the mode (`walkthrough` for complete tutorials, `pitch` for 15-30s launch teasers, `explainer` for concept proofs) and writes `storyboard.json` with semantic selectors and `waitFor` conditions.
+3. **Execution:** The agent runs `walkthrough plan`, starts the local server, and invokes `walkthrough run storyboard.json`.
+4. **Scoring & Audio:** The agent generates tactile SFX from `events.json` and synthesizes narration.
+5. **Verification:** The agent audits the output using `walkthrough verify <video.mp4> --approve-visual` and delivers the final MP4.
 
 ## Current boundaries and roadmap
 
