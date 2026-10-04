@@ -1,6 +1,13 @@
 ---
 name: walkthrough
-description: Create a polished walkthrough, explainer, or pitch video from a live local web app. Use for browser-product demos that need deliberate cursor-led interaction, editorial pacing, and frame-reviewed output; do not use for native-desktop capture or generic AI-video generation. Trigger: /walkthrough, "make a walkthrough video", "record product demo", "walkthrough this project", or "screen record this app".
+description: >
+  Create a polished walkthrough, explainer, or pitch video from a live local web app.
+  Use for browser-product demos that need deliberate cursor-led interaction,
+  editorial pacing, and frame-reviewed output; do not use for native-desktop capture
+  or generic AI-video generation. Trigger: /walkthrough, "make a walkthrough video",
+  "record product demo", "walkthrough this project", or "screen record this app".
+argument-hint: "[optional: mode, duration, or target URL]"
+license: MIT
 ---
 
 # Walkthrough
