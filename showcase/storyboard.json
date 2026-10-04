@@ -1,8 +1,9 @@
 {
   "title": "Nexus Pulse Cloud Observability Walkthrough",
+  "mode": "walkthrough",
   "voiceGender": "Female",
   "voice": "en-US-AvaMultilingualNeural",
-  "baseUrl": "file:///C:/Users/pnara/OneDrive/Desktop/screen%20rec%20demo/app/index.html",
+  "baseUrl": "../demo/index.html",
   "outputDir": "./walkthrough-output",
   "steps": [
     {
@@ -14,6 +15,7 @@
       "selector": "button#tab-30d",
       "action": "click",
       "zoomOnClick": true,
+      "waitFor": { "selector": "button#tab-30d.active" },
       "holdMs": 5286
     },
     {
@@ -21,6 +23,7 @@
       "selector": "input#service-search",
       "action": "type",
       "text": "polars",
+      "waitFor": { "selector": "input#service-search", "value": "polars" },
       "typeDelay": 85,
       "zoomOnClick": true,
       "holdMs": 2688
@@ -30,6 +33,7 @@
       "selector": "button#btn-deploy",
       "action": "click",
       "zoomOnClick": true,
+      "waitFor": { "selector": "#toast.show" },
       "holdMs": 4374
     }
   ]

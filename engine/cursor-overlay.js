@@ -37,6 +37,7 @@
         transform: translate3d(960px, 1120px, 0);
         will-change: transform;
       }
+      html, body, body * { cursor: none !important; }
       #__wt_cursor__ .wt-ptr {
         position: relative;
         filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4)) drop-shadow(0 1px 2px rgba(0,0,0,0.5));

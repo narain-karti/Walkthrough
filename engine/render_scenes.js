@@ -55,11 +55,21 @@ async function main() {
     } catch (_) {}
   }
 
-  const browser = await chromium.launch({
-    channel: 'msedge',
-    headless: true,
-    args: ['--hide-scrollbars', '--no-sandbox'],
-  });
+  let browser;
+  const channel = process.env.WALKTHROUGH_BROWSER_CHANNEL || 'msedge';
+  const launchArgs = ['--hide-scrollbars', '--no-sandbox'];
+  try {
+    browser = await chromium.launch({
+      channel,
+      headless: true,
+      args: launchArgs,
+    });
+  } catch (_) {
+    browser = await chromium.launch({
+      headless: true,
+      args: launchArgs,
+    });
+  }
 
   try {
     const act1Html = path.resolve(__dirname, '../templates/act1_intro.html');

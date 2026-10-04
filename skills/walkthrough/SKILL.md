@@ -1,188 +1,56 @@
 ---
 name: walkthrough
-description: >
-  Autonomously inspects any local web repository, starts its development server,
-  scripts an interactive product journey, records native 1080p 60fps screen video
-  with a physics-modeled macOS cursor and clamped cinematic camera zooms via Playwright,
-  synthesizes neural voiceover via edge-tts, generates tactile acoustic sound effects
-  in an impulse reverb room, burns broadcast subtitles, and delivers a polished
-  product walkthrough demo video.
-  Trigger: /walkthrough, "make a walkthrough video", "record product demo",
-  "walkthrough this project", or "screen record this app".
+description: Create a polished walkthrough, explainer, or pitch video from a live local web app. Use for browser-product demos that need deliberate cursor-led interaction, editorial pacing, and frame-reviewed output; do not use for native-desktop capture or generic AI-video generation. Trigger: /walkthrough, "make a walkthrough video", "record product demo", "walkthrough this project", or "screen record this app".
 ---
 
 # Walkthrough
 
-Autonomous, high-production product demo videos from live web applications. Walkthrough fuses
-**real browser automation** (Playwright with physics-driven macOS cursor and camera), **onetake physics
-and acoustic sound synthesis** (39 motion primitives, frame-by-frame shutter blur, tactile SFX in an
-impulse room, quality oracle), and **brag editorial polish** (3-Act storytelling, Swiss typography,
-pause-centered camera dissolves).
+Produce a product film in which every on-screen reaction has a visible cause. The live product is the proof; design, sound, captions, and camera work must clarify that proof rather than decorate it.
 
-```
-   ┌───────────────────┐     ┌─────────────────────┐     ┌───────────────────────┐
-   │   ACT 1: HOOK     │ ──► │  ACT 2: WALKTHROUGH │ ──► │     ACT 3: OUTRO      │
-   │ Editorial 3D Card │     │ Live App + Cursor   │     │ Receipt + Call to Act │
-   └───────────────────┘     └─────────────────────┘     └───────────────────────┘
-             │                          │                            │
-             └─────────────────── Math xfade ────────────────────────┘
-```
+## Choose the right mode
 
----
+- **`walkthrough`** — a faithful product tutorial or feature demo. Most of the running time is a real browser session.
+- **`explainer`** — explains a product idea or workflow. Uses the real product as proof, with short designed interstitials only where they add context.
+- **`pitch`** — a concise claim → evidence → outcome/CTA film. It is not a generic slideshow or a full app tutorial.
 
-## When to use this skill
+Honor a mode named by the user. If none is named, use `walkthrough` for “show me how” requests and ask only when the choice materially changes the result. Do not use this skill for native desktop applications, third-party footage editing, or synthetic footage that pretends to be a real product capture.
 
-- Record a product walkthrough of a web app — **yes**.
-- Create a demo video showing an interactive feature — **yes**.
-- Generate an intro + walkthrough + outro video with voiceover, SFX, and subtitles — **yes**.
-- Audit demo pacing, rhythm, stillness, and audio with the quality oracle — **yes**.
-- Record native desktop apps, Electron, terminal-only CLIs — **no** (browser web apps only).
-- Edit existing third-party footage — **no** (generates from live code and DOM).
+## Preflight
 
----
+1. Inspect the repository and find the normal local start command, target URL, brand tokens, and the smallest complete user journey. Run the app locally and check the journey in the browser before recording.
+2. Record only safe, disposable data. Never autonomously trigger billing, email/SMS, deletion, production deploys, or an irreversible external side effect. Use a demo account, fixtures, or a local environment.
+3. Create a v3 storyboard. Read [the storyboard reference](references/storyboard.md) before authoring or changing one. Validate it with `walkthrough plan <storyboard.json>` before recording.
+4. Prefer stable semantic selectors (`data-testid`, accessible role/name, or a stable ID). A CSS class is a last resort. Each consequential action needs an observable `waitFor` outcome.
 
-## Prerequisites
+## Direct the capture
 
-The agent verifies these before running:
+- Give the viewer one task at a time: orient → act → observe the outcome. Begin and end wide; focus only when it improves legibility.
+- Move the cursor to the exact target before it reacts. Use a modest, destination-aware glide; do not let a decorative cursor wander or lag behind an interaction.
+- Make zoom intentional. Keep the target, its label, and the result visible; avoid zooming every click. Return to a wide frame when context matters.
+- Keep the capture truthful. Do not fake live interactions with a static UI, an AI-generated screen, or a hard-coded reaction.
+- Use short, plain narration that says why the action matters. Captions must not cover the target or a visible result.
 
-```bash
-node --version    # >= 18
-python --version  # >= 3.9
-ffmpeg -version   # with libass/subtitles filter
-```
+The recorder writes `events.json` alongside the raw recording. Score interaction SFX from that event stream, not from a generic demo palette. Playwright WebM capture is currently 25fps in this engine; never describe it as native 60fps. A 30/60fps delivery encode does not create temporal detail that was not captured.
 
-Dependencies in repository:
-- `npm install` (Playwright)
-- `pip install -r requirements.txt` (edge-tts, numpy, scipy, Pillow)
+## Design the non-capture scenes
 
----
+For `explainer` and `pitch`, first write a one-sentence visual idea and name what carries across every scene boundary (for example: a selected filter becomes the title treatment, then resolves into the verified result). Derive design from the product: inspect its actual type scale, palette, UI shapes, terminology, and logo. Use one visual system and one primary focal point per beat. A designed scene should earn its place by establishing a problem, preserving continuity into the product, or landing a verified outcome.
 
-## Autonomous Pipeline
+Avoid fake browser chrome, stock “AI future” imagery, arbitrary glass cards, decorative gradients, random icon showers, and motion that has no semantic cause. Use a restrained transition that carries an object, color, crop, or phrase from one beat to the next. Search an existing motion treatment before hand-building a named effect. For a full rendered motion composition, follow the installed HyperFrames workflow rather than pretending browser capture is a general motion-graphics renderer.
 
-### 1 · Inspect the codebase
-Read `package.json`, `vite.config.*`, or `next.config.*` to locate:
-- Dev server command (`npm run dev`, `npm start`, etc.)
-- Target local URL (`http://localhost:5173`, `http://localhost:3000`)
-- Key interactive selectors (`button#cta`, `input#search`, etc.)
+## Review and acceptance
 
-### 2 · Write the Storyboard (`storyboard.json`)
-```json
-{
-  "title": "Nexus Pulse — Observability Walkthrough",
-  "baseUrl": "http://localhost:5173",
-  "outputDir": "./walkthrough-output",
-  "steps": [
-    { "desc": "Wide overview of cluster metrics", "holdMs": 5000 },
-    { "desc": "Select thirty-day window", "selector": "button#range-30d", "action": "click", "zoomOnClick": true, "holdMs": 4000 },
-    { "desc": "Filter analytics workers", "selector": "input#query", "action": "type", "text": "analytics-worker", "holdMs": 3500 },
-    { "desc": "Trigger canary deployment", "selector": "button#deploy", "action": "click", "zoomOnClick": true, "holdMs": 5000 }
-  ]
-}
-```
+Inspect a contact sheet and key frames: first frame, every interaction target, every zoom apex, every scene boundary, every caption, and the final frame. Then run `walkthrough verify <film> --shots …` as a baseline check. The oracle measures only cadence, stillness, energy, and audio safety; it cannot certify story clarity, UI legibility, cursor timing, false claims, or visual taste.
 
-**Rhythm rules**: Vary step hold durations by ≥ 3× (e.g. 2.5s quick actions next to 6.0s holds). Never cut on a metronome.
+Fix observable problems before delivery: flashes, dropped/duplicated source frames, cursor/UI mismatch, target-obscuring subtitles, unmotivated zooms, failed UI outcomes, clipped audio, or mismatched brand/design treatment. Deliver the master plus its storyboard, event manifest, and verification result so the video is reproducible.
 
-### 3 · Synthesize Neural Narration
-```bash
-python engine/audio_synthesizer.py
-```
-- Selects persona (`AvaMultilingualNeural` for SaaS, `AndrewMultilingualNeural` for technical infrastructure)
-- Automatically inserts 500ms breathing pauses between acts
-- Exports `flagship-output/timing.json` with exact millisecond timestamps and `flagship_subtitles.srt`
-
-### 4 · Synthesize Acoustic Sound Effects (SFX)
-```bash
-python engine/sfx_palette.py --events flagship-output/events.json --dur 32 --out flagship-output/flagship_sfx.wav
-# Or generate standalone demonstration palette:
-python engine/sfx_palette.py --demo flagship-output/flagship_sfx.wav
-```
-- Physical materials: `wood` (clicks/keys), `air` (zooms/whooshes), `glass` (chimes/reveals), `sub` (impacts)
-- Shared acoustic impulse room: 0.85s T60 stereo reverb tail keeps all sounds tactile and grounded
-
-### 5 · Record Browser Session
-```bash
-node engine/record.js storyboard.json
-```
-- Injects `engine/cursor-overlay.js`: macOS pointer with SmootherStep glide kinematics and spring-damped tracking
-- Injects `engine/camera-engine.js`: 1.14× zoom with viewport pan clamping
-- Captures 1080p 60fps video via Playwright
-
-### 6 · Render Editorial Scenes
-```bash
-node engine/render_scenes.js
-```
-- Records `templates/act1_intro.html` (Hook) and `templates/act3_outro.html` (Receipt) at native 1080p
-
-### 7 · Master Compositing
-```bash
-python engine/compositor.py
-```
-- Mathematically centers xfade camera dissolves inside the 500ms voiceover breathing pauses
-- Mixes voiceover + synthetic SFX room track
-- Burns crisp subtitles with `BorderStyle=3` semi-transparent backing
-- Writes web-optimized faststart MP4 and extracts hero poster at 3.0s
-
-### 8 · Verify with Quality Oracle
-```bash
-python engine/verify.py flagship-output/flagship_showcase.mp4 --shots 0,8.2,14.0,18.4,24.5
-```
-- **cadence**: Verifies coefficient of variation across shot lengths (CV >= 0.20)
-- **rest**: Confirms frame stillness (>= 25% dead-still, >= 1.0s quiet rest)
-- **audio**: Confirms peak <= -3 dBFS, zero clipped samples, >= 15% quiet frames
-- **energy**: Generates ASCII frame energy map
-
----
-
-## CLI Reference
+## Commands
 
 ```bash
-# Complete 3-Act showcase demo end-to-end
-walkthrough demo
-
-# Record live browser from storyboard
-walkthrough run storyboard.json
-
-# Synthesize neural voiceover
-walkthrough audio
-
-# Generate acoustic sound effects
-walkthrough sfx [out.wav]
-
-# Render Act 1 and Act 3 templates
-walkthrough scenes
-
-# Stitch final video with xfade dissolves & subtitles
-walkthrough composite
-
-# Audit video quality with oracle
-walkthrough verify <video.mp4> [--shots t0,t1,...]
-
-# Render HTML composition with 180° shutter motion blur
-walkthrough shutter <comp.html> [--fps 30] [--out film.mp4]
+walkthrough plan walkthrough.json
+walkthrough run walkthrough.json
+python engine/sfx_palette.py --events walkthrough-output/events.json --dur 30 --out walkthrough-output/sfx.wav
+walkthrough verify walkthrough-output/master.mp4 --shots 0,4.2,9.8,15.1
 ```
 
----
-
-## Motion Physics Library (`lib/motion.js` v2.0.0)
-
-Pure functions of time available under `window.WM` (browser) and `require('./lib/motion')` (Node):
-
-| Category | Primitives |
-|----------|------------|
-| **Curves** | `ease.*`, `bezier`, `tween`, `t80`, `spring`, `springVel`, `ring`, `settle`, `spline`, `rng` |
-| **Entrances** | `wordRise`, `letterDrop`, `popIn`, `liftOut`, `maskRise`, `typeOn`, `tick`, `flyThrough` |
-| **Carries** | `morphRect`, `iris`, `zoomThrough`, `hop`, `gather`, `ribbon`, `seal`, `staccato` |
-| **Contact** | `impact`, `impactSplit`, `press`, `cursor`, `squash`, `sim.{magnet, follow, jelly, verlet}` |
-| **Camera** | `camera`, `view`, `dof`, `whip`, `shake`, `drift`, `lattice`, `project`, `unproject`, `projectBox`, `screenTravel` |
-| **Fluid** | `swiftSpring`, `lightField`, `ripple`, `silk`, `carouselLoop` |
-
----
-
-## Hard Rules
-
-1. **The cause must be visible**: The cursor or interaction trigger must lead every reaction on screen.
-2. **Never cut on a metronome**: Vary shot durations by at least 3× so the video has natural breathing cadence.
-3. **Never let the frame always be in motion**: Stillness makes the bursts land.
-4. **Pause-centered dissolves**: Video cuts occur inside the 500ms voiceover breathing pauses; never cut across active speech.
-5. **Shared acoustic room**: Sound effects share a unified impulse reverb environment; never use disconnected dry sine beeps.
-6. **Deterministic execution**: `seek(t)` called twice always produces the identical frame.
+The flagship `demo` command is an internal example, not a template for product copy or a quality claim for another project.

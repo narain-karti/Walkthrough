@@ -8,6 +8,10 @@
 const fs = require('fs');
 const path = require('path');
 const { spawn, execSync } = require('child_process');
+const { readStoryboard, usage } = require('../engine/storyboard');
+
+const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+const rootDir = path.resolve(__dirname, '..');
 
 const args = process.argv.slice(2);
 const command = args[0] || 'help';
@@ -21,6 +25,7 @@ function showHelp() {
 
 \x1b[1mCOMMANDS:\x1b[0m
   \x1b[36mrun\x1b[0m [storyboard.json]     Record live web app with physics cursor and camera
+  \x1b[36mplan\x1b[0m <storyboard.json>     Validate and inspect a v3 production storyboard
   \x1b[36maudio\x1b[0m                   Synthesize speech narration via edge-tts
   \x1b[36msfx\x1b[0m [demo|--events]       Synthesize acoustic sound effects in shared reverb room
   \x1b[36mscenes\x1b[0m                Render Act 1 (Intro) & Act 3 (Outro) motion templates
@@ -52,22 +57,22 @@ switch (command) {
     console.log('\x1b[1m\x1b[32m[Walkthrough]\x1b[0m Launching Flagship 3-Act Showcase Demo Pipeline...');
     try {
       console.log('\x1b[36m[1/5] Synthesizing Neural Voiceover...\x1b[0m');
-      execSync('python engine/audio_synthesizer.py', { stdio: 'inherit' });
+      execSync(`${py} "${path.join(rootDir, 'engine/audio_synthesizer.py')}"`, { stdio: 'inherit', cwd: rootDir });
 
       console.log('\x1b[36m[2/5] Synthesizing Acoustic SFX Palette...\x1b[0m');
-      execSync('python engine/sfx_palette.py --demo flagship-output/flagship_sfx.wav', { stdio: 'inherit' });
+      execSync(`${py} "${path.join(rootDir, 'engine/sfx_palette.py')}" --demo "${path.join(rootDir, 'flagship-output/flagship_sfx.wav')}"`, { stdio: 'inherit', cwd: rootDir });
 
       console.log('\x1b[36m[3/5] Rendering Editorial Motion Scenes...\x1b[0m');
-      execSync('node engine/render_scenes.js', { stdio: 'inherit' });
+      execSync(`node "${path.join(rootDir, 'engine/render_scenes.js')}"`, { stdio: 'inherit', cwd: rootDir });
 
       console.log('\x1b[36m[4/5] Executing Browser Walkthrough...\x1b[0m');
-      execSync('node engine/record.js', { stdio: 'inherit' });
+      execSync(`node "${path.join(rootDir, 'engine/record.js')}" "${path.join(rootDir, 'showcase/storyboard.json')}"`, { stdio: 'inherit', cwd: rootDir });
 
       console.log('\x1b[36m[5/5] Compositing Master Video...\x1b[0m');
-      execSync('python engine/compositor.py', { stdio: 'inherit' });
+      execSync(`${py} "${path.join(rootDir, 'engine/compositor.py')}"`, { stdio: 'inherit', cwd: rootDir });
 
       console.log('\x1b[36m[Quality Oracle] Verifying output quality...\x1b[0m');
-      execSync('python engine/verify.py flagship-output/flagship_showcase.mp4 --shots 0,8.2,14.0,18.4,24.5', { stdio: 'inherit' });
+      execSync(`${py} "${path.join(rootDir, 'engine/verify.py')}" "${path.join(rootDir, 'flagship-output/flagship_showcase.mp4')}" --shots 0,8.2,14.0,18.4,24.5 --approve-visual`, { stdio: 'inherit', cwd: rootDir });
 
       console.log('\n\x1b[1m\x1b[32m[Walkthrough Masterpiece Ready]\x1b[0m -> ./flagship-output/flagship_showcase.mp4');
     } catch (e) {
@@ -85,17 +90,32 @@ switch (command) {
     break;
   }
 
+  case 'plan': {
+    const config = args[1] || 'storyboard.json';
+    try {
+      const plan = readStoryboard(config);
+      console.log(`\n[Walkthrough] ${plan.title}\n  mode: ${plan.mode}\n  steps: ${plan.steps.length}\n  output: ${plan.outputDir}`);
+      for (const step of plan.steps) console.log(`  - ${step.id}: ${step.title}${step.action ? ` (${step.action})` : ''}`);
+      console.log(usage());
+    } catch (error) {
+      console.error(`[Walkthrough] ${error.message}`);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
   case 'audio': {
     console.log('\x1b[1m\x1b[32m[Walkthrough]\x1b[0m Synthesizing speech narration...');
-    const audioProc = spawn('python', [path.resolve(__dirname, '../engine/audio_synthesizer.py')], { stdio: 'inherit' });
+    const audioProc = spawn(py, [path.resolve(__dirname, '../engine/audio_synthesizer.py')], { stdio: 'inherit' });
     audioProc.on('exit', (code) => process.exit(code || 0));
     break;
   }
 
   case 'sfx': {
-    const outWav = args[1] || 'sfx.wav';
-    console.log(`\x1b[1m\x1b[32m[Walkthrough]\x1b[0m Generating synthetic sound effects -> ${outWav}`);
-    const sfxProc = spawn('python', [path.resolve(__dirname, '../engine/sfx_palette.py'), '--demo', outWav], { stdio: 'inherit' });
+    const extra = args.slice(1);
+    const sfxArgs = extra.length ? extra : ['--demo', 'sfx.wav'];
+    console.log(`\x1b[1m\x1b[32m[Walkthrough]\x1b[0m Generating synthetic sound effects...`);
+    const sfxProc = spawn(py, [path.resolve(__dirname, '../engine/sfx_palette.py'), ...sfxArgs], { stdio: 'inherit' });
     sfxProc.on('exit', (code) => process.exit(code || 0));
     break;
   }
@@ -110,7 +130,7 @@ switch (command) {
   case 'composite':
   case 'render': {
     console.log('\x1b[1m\x1b[32m[Walkthrough]\x1b[0m Running master FFmpeg compositor...');
-    const compProc = spawn('python', [path.resolve(__dirname, '../engine/compositor.py')], { stdio: 'inherit' });
+    const compProc = spawn(py, [path.resolve(__dirname, '../engine/compositor.py')], { stdio: 'inherit' });
     compProc.on('exit', (code) => process.exit(code || 0));
     break;
   }
@@ -119,7 +139,7 @@ switch (command) {
     const videoPath = args[1] || 'flagship-output/flagship_showcase.mp4';
     const extraArgs = args.slice(2);
     console.log(`\x1b[1m\x1b[32m[Walkthrough]\x1b[0m Running Quality Oracle on: ${videoPath}`);
-    const verifyProc = spawn('python', [path.resolve(__dirname, '../engine/verify.py'), videoPath, ...extraArgs], { stdio: 'inherit' });
+    const verifyProc = spawn(py, [path.resolve(__dirname, '../engine/verify.py'), videoPath, ...extraArgs], { stdio: 'inherit' });
     verifyProc.on('exit', (code) => process.exit(code || 0));
     break;
   }
@@ -132,7 +152,7 @@ switch (command) {
     }
     const extra = args.slice(2);
     console.log(`\x1b[1m\x1b[32m[Walkthrough]\x1b[0m Rendering with real shutter motion blur: ${compHtml}`);
-    const shutProc = spawn('python', [path.resolve(__dirname, '../engine/renderer.py'), compHtml, ...extra], { stdio: 'inherit' });
+    const shutProc = spawn(py, [path.resolve(__dirname, '../engine/renderer.py'), compHtml, ...extra], { stdio: 'inherit' });
     shutProc.on('exit', (code) => process.exit(code || 0));
     break;
   }

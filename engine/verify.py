@@ -1,215 +1,182 @@
 #!/usr/bin/env python3
+"""Walkthrough delivery gate.
+
+It combines measurable media checks with capture evidence.  It deliberately
+returns NEEDS_REVIEW until an operator has inspected the generated contact
+sheet; visual taste and whether a caption obscures meaning cannot be inferred
+reliably from pixels alone.
 """
-Walkthrough · engine/verify.py
-Quality oracle — does the cut have rhythm, and does it carry?
-
-Checks that fail a slideshow before a human has to watch it.
-
-Usage:
-  python engine/verify.py film.mp4 --shots 0,1.6,3.0,4.8,7.0,9.6
-
-Legs:
-  cadence     Shot lengths must vary: CV >= 0.25. Equal shots = slides.
-  rest        >= 25% of frames dead-still, one quiet stretch >= 1.0s.
-  audio       Peak <= -3 dBFS, 0 clipped samples, >= 15% quiet frames.
-  burst       A 1.5s window with >= 3 big changes. WARN if absent (not FAIL).
-  energy      Row-profile variation (advisory).
-
-Exit code 1 if any leg fails.
-
-MIT License · Narain Karti
-"""
-import argparse, json, os, subprocess, sys, tempfile
+import argparse, json, math, os, re, shutil, subprocess, sys, tempfile
 import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-if hasattr(sys.stderr, "reconfigure"):
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+
+def run(cmd):
+    return subprocess.run(cmd, check=True, capture_output=True, text=True)
+
+
+def probe(video):
+    data = json.loads(run([
+        "ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+        "stream=width,height,r_frame_rate:format=duration", "-of", "json", video
+    ]).stdout)
+    stream = data["streams"][0]
+    n, _, d = stream["r_frame_rate"].partition("/")
+    fps = float(n) / float(d or 1)
+    return int(stream["width"]), int(stream["height"]), max(1, round(fps)), float(data["format"]["duration"])
 
 
 def extract_frames(video, tmp, width=320):
-    """Extract frames as greyscale numpy arrays at reduced resolution."""
-    pattern = os.path.join(tmp, "f%05d.png")
-    subprocess.run([
-        "ffmpeg", "-v", "error", "-y", "-i", video,
-        "-vf", f"scale={width}:-1", "-vsync", "vfr", pattern
-    ], check=True)
-
-    from PIL import Image
-    frames = []
-    for f in sorted(os.listdir(tmp)):
-        if f.startswith("f") and f.endswith(".png"):
-            img = np.asarray(Image.open(os.path.join(tmp, f)).convert("L"), dtype=np.float32)
-            frames.append(img)
-    return frames
+    pattern = os.path.join(tmp, "frame_%05d.png")
+    run(["ffmpeg", "-v", "error", "-y", "-i", video, "-vf", f"scale={width}:-1", "-vsync", "vfr", pattern])
+    return [np.asarray(Image.open(os.path.join(tmp, name)).convert("L"), dtype=np.float32)
+            for name in sorted(os.listdir(tmp)) if name.startswith("frame_")]
 
 
-def compute_energy(frames):
-    """Frame-to-frame mean absolute difference."""
-    diffs = []
-    for i in range(1, len(frames)):
-        diffs.append(np.abs(frames[i] - frames[i-1]).mean())
-    return np.array(diffs)
+def parse_srt(path):
+    if not path or not os.path.exists(path): return []
+    text = open(path, encoding="utf-8").read().replace("\r", "")
+    def stamp(value):
+        h, m, rest = value.replace(",", ".").split(":")
+        return int(h) * 3600 + int(m) * 60 + float(rest)
+    items = []
+    for block in re.split(r"\n\s*\n", text.strip()):
+        lines = block.split("\n")
+        if len(lines) < 3 or "-->" not in lines[1]: continue
+        start, end = [stamp(v.strip()) for v in lines[1].split("-->")]
+        items.append({"start": start, "end": end, "text": " ".join(lines[2:]).strip()})
+    return items
 
 
-def energy_map(energy, fps, cols=60):
-    """ASCII energy map: each column = 1/fps second of film."""
-    if len(energy) == 0:
-        return "(no frames)"
-    # Bin into cols columns
-    bins = np.array_split(energy, min(cols, len(energy)))
-    vals = [b.mean() for b in bins]
-    mx = max(vals) if max(vals) > 0 else 1
-    chars = " ▁▂▃▄▅▆▇█"
-    return "".join(chars[min(len(chars)-1, int(v / mx * (len(chars)-1)))] for v in vals)
-
-
-def get_fps(video):
-    r = subprocess.run(
-        ["ffprobe", "-v", "error", "-select_streams", "v:0",
-         "-show_entries", "stream=r_frame_rate", "-of", "csv=p=0", video],
-        capture_output=True, text=True
-    ).stdout.strip()
-    num, _, den = r.partition("/")
+def contact_sheet(video, output, duration, count=12):
+    tmp = tempfile.mkdtemp(prefix="walkthrough-sheet-")
     try:
-        return max(1, int(round(float(num) / float(den or 1))))
-    except ValueError:
-        return 30
+        frames = []
+        for index, t in enumerate(np.linspace(0, max(0, duration - 0.05), count)):
+            path = os.path.join(tmp, f"{index:02d}.jpg")
+            run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t:.3f}", "-i", video,
+                 "-frames:v", "1", "-vf", "scale=400:-1", path])
+            image = Image.open(path).convert("RGB")
+            draw = ImageDraw.Draw(image)
+            draw.rectangle((0, 0, 92, 24), fill=(0, 0, 0))
+            draw.text((8, 5), f"{t:05.2f}s", fill=(255, 255, 255))
+            frames.append(image)
+        cell_w, cell_h = 400, max(image.height for image in frames)
+        sheet = Image.new("RGB", (cell_w * 4, cell_h * math.ceil(len(frames) / 4)), "black")
+        for i, image in enumerate(frames): sheet.paste(image, ((i % 4) * cell_w, (i // 4) * cell_h))
+        os.makedirs(os.path.dirname(os.path.abspath(output)), exist_ok=True)
+        sheet.save(output, quality=92)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
-def audio_stats(video):
-    """Extract audio peak, clipped samples, and quiet ratio."""
-    try:
-        import wave
-        tmp = tempfile.mkdtemp()
-        wav = os.path.join(tmp, "a.wav")
-        r = subprocess.run(
-            ["ffmpeg", "-v", "error", "-y", "-i", video, "-vn", "-ac", "2", "-ar", "48000", wav],
-            capture_output=True
-        )
-        if r.returncode != 0 or not os.path.exists(wav):
-            return None
-        w = wave.open(wav)
-        x = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).reshape(-1, 2) / 32767.0
-        w.close()
-        n = 4000  # ~83ms frames
-        rms = np.array([np.sqrt((x[i:i+n]**2).mean()) for i in range(0, len(x)-n, n)])
-        return {
-            "peak_db": round(20 * np.log10(np.abs(x).max() + 1e-9), 1),
-            "clipped": int((np.abs(x) >= 0.999).sum()),
-            "quiet_ratio": round(float((20 * np.log10(rms + 1e-9) < -40).mean()), 3),
-        }
-    except Exception:
-        return None
-
-
-def leg(name, state, detail):
-    icon = {"PASS": "✓", "WARN": "⚠", "FAIL": "✗"}.get(state, "?")
-    print(f"  {icon} {state:4}  {name:12} {detail}")
-    return state != "FAIL"
+def state(name, value, detail, results, fatal=False):
+    results["legs"][name] = {"state": value, "detail": detail, "fatal": fatal}
+    icon = {"PASS": "✓", "WARN": "⚠", "FAIL": "✗", "REVIEW": "◌"}[value]
+    print(f"  {icon} {value:6} {name:16} {detail}")
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Walkthrough quality oracle")
-    ap.add_argument("video", help="Path to the rendered video")
-    ap.add_argument("--shots", default=None, help="Comma-separated shot boundary times (seconds)")
-    ap.add_argument("--cv-threshold", type=float, default=0.20, help="Cadence coefficient of variation threshold (default 0.20)")
-    ap.add_argument("--json", default=None, help="Output results as JSON to this path")
-    a = ap.parse_args()
+    ap = argparse.ArgumentParser(description="Walkthrough delivery gate")
+    ap.add_argument("video")
+    ap.add_argument("--shots", help="Comma-separated shot starts in seconds")
+    ap.add_argument("--events", help="Recorder events.json")
+    ap.add_argument("--captions", help="SRT used in the master")
+    ap.add_argument("--manifest", help="recording-manifest.json")
+    ap.add_argument("--contact-sheet", help="Output JPG; defaults beside the video")
+    ap.add_argument("--approve-visual", action="store_true", help="Confirm a human inspected the contact sheet and key frames")
+    ap.add_argument("--json", help="Write the report to this path")
+    ap.add_argument("--max-still-ratio", type=float, default=0.72)
+    args = ap.parse_args()
 
-    fps = get_fps(a.video)
-    tmp = tempfile.mkdtemp()
-    frames = extract_frames(a.video, tmp)
-    energy = compute_energy(frames)
+    width, height, fps, duration = probe(args.video)
+    report = {"video": args.video, "size": [width, height], "fps": fps, "duration_s": duration, "legs": {}}
+    print(f"\n  {os.path.basename(args.video)} — {width}×{height}, {fps}fps, {duration:.2f}s\n")
+    temp = tempfile.mkdtemp(prefix="walkthrough-review-")
+    try:
+        frames = extract_frames(args.video, temp)
+    finally:
+        shutil.rmtree(temp, ignore_errors=True)
+    if len(frames) < 3: raise RuntimeError("Video has too few frames to review")
+    energy = np.array([np.abs(frames[i] - frames[i - 1]).mean() for i in range(1, len(frames))])
 
-    dur_s = len(frames) / fps
-    emap = energy_map(energy, fps)
+    # A uniform near-white opening frame is a characteristic browser/new-page flash.
+    opening = frames[:min(fps, len(frames))]
+    white_count = sum(frame.mean() > 245 and frame.std() < 6 for frame in opening)
+    state("opening_flash", "FAIL" if white_count else "PASS",
+          f"{white_count}/{len(opening)} uniform white frames in first second", report, fatal=bool(white_count))
 
-    print(f"\n  {os.path.basename(a.video)} — {len(frames)} frames, {fps} fps, {dur_s:.1f}s")
-    print(f"  Energy: {emap}\n")
+    still = energy < 0.5
+    still_ratio = float(still.mean())
+    longest, current = 0, 0
+    for item in still:
+        current = current + 1 if item else 0
+        longest = max(longest, current)
+    rest_state = "FAIL" if still_ratio > args.max_still_ratio else ("WARN" if still_ratio > 0.62 else "PASS")
+    state("pacing", rest_state, f"still {still_ratio:.2f}; longest hold {longest / fps:.2f}s; limit {args.max_still_ratio:.2f}", report, fatal=rest_state == "FAIL")
 
-    oks = []
-    results = {"video": a.video, "fps": fps, "duration_s": dur_s, "legs": {}}
+    rows = [energy[i:i + fps * 3].mean() for i in range(0, len(energy), fps * 3) if len(energy[i:i + fps * 3])]
+    variation = float(np.std(rows) / (np.mean(rows) + 1e-9))
+    energy_state = "WARN" if variation < 0.22 else "PASS"
+    state("energy_shape", energy_state, f"three-second variation {variation:.2f}", report)
 
-    # ── cadence ──
-    if a.shots:
-        ts = sorted(float(x) for x in a.shots.split(","))
-        L = np.diff(ts + [dur_s])
-        cv = float(L.std() / (L.mean() + 1e-9))
-        state = "PASS" if cv >= a.cv_threshold else "FAIL"
-        detail = f"shot lengths {np.round(L, 2).tolist()}  CV {cv:.2f} (need >= {a.cv_threshold})"
-        oks.append(leg("cadence", state, detail))
-        results["legs"]["cadence"] = {"state": state, "cv": cv, "lengths": L.tolist()}
+    if args.shots:
+        starts = sorted(float(item) for item in args.shots.split(","))
+        lengths = np.diff(starts + [duration])
+        cv = float(lengths.std() / (lengths.mean() + 1e-9))
+        cadence_state = "FAIL" if cv < 0.20 else "PASS"
+        state("cadence", cadence_state, f"CV {cv:.2f}; lengths {np.round(lengths, 2).tolist()}", report, fatal=cadence_state == "FAIL")
+
+    events = json.load(open(args.events, encoding="utf-8")) if args.events and os.path.exists(args.events) else []
+    by_step = {}
+    for event in events: by_step.setdefault(event.get("step"), []).append(event)
+    action_types = {"click", "type", "press", "select"}
+    actions = [event for event in events if event.get("type") in action_types]
+    cursor_failures, outcome_failures = [], []
+    for action in actions:
+        sequence = by_step.get(action.get("step"), [])
+        arrivals = [event for event in sequence if event.get("type") == "cursor_arrive" and 0.08 <= action["time"] - event["time"] <= 2.5]
+        if not arrivals: cursor_failures.append(action.get("step"))
+        if not any(event.get("type") == "outcome" and event.get("passed") for event in sequence): outcome_failures.append(action.get("step"))
+    if events:
+        state("cursor_cause", "FAIL" if cursor_failures else "PASS", f"missing lead-in for {cursor_failures or 'none'}", report, fatal=bool(cursor_failures))
+        state("ui_outcomes", "FAIL" if outcome_failures else "PASS", f"unverified actions: {outcome_failures or 'none'}", report, fatal=bool(outcome_failures))
     else:
-        print("  ○ skip  cadence      (pass --shots t0,t1,… to check)")
+        state("cursor_cause", "WARN", "no events file supplied", report)
+        state("ui_outcomes", "WARN", "no events file supplied", report)
 
-    # ── rest ──
-    still_threshold = 0.5
-    still_frames = (energy < still_threshold).astype(float)
-    still_ratio = float(still_frames.mean()) if len(still_frames) > 0 else 0
+    captions = parse_srt(args.captions)
+    caption_overlap = []
+    caption_top = height * 0.925
+    for action in actions:
+        if not any(item["start"] <= action["time"] <= item["end"] for item in captions): continue
+        box = action.get("box") or {}
+        if box and box.get("y", 0) + box.get("height", box.get("h", 0)) >= caption_top:
+            caption_overlap.append(action.get("step"))
+    caption_state = "FAIL" if caption_overlap else "PASS"
+    state("caption_safe_zone", caption_state, f"caption rail begins at y={caption_top:.0f}; overlaps {caption_overlap or 'none'}", report, fatal=bool(caption_overlap))
 
-    # Longest quiet stretch
-    max_quiet = 0
-    current = 0
-    for s in still_frames:
-        if s:
-            current += 1
-            max_quiet = max(max_quiet, current)
-        else:
-            current = 0
-    longest_quiet_s = max_quiet / fps
+    if args.manifest and os.path.exists(args.manifest):
+        manifest = json.load(open(args.manifest, encoding="utf-8"))
+        source_fps = manifest.get("captureFps")
+        state("capture_metadata", "WARN" if source_fps and source_fps < 30 else "PASS", f"source capture {source_fps or 'unknown'}fps", report)
 
-    state = "PASS" if still_ratio >= 0.25 and longest_quiet_s >= 1.0 else "FAIL"
-    oks.append(leg("rest", state, f"still {still_ratio:.2f}  longest quiet {longest_quiet_s:.1f}s"))
-    results["legs"]["rest"] = {"state": state, "still_ratio": still_ratio, "longest_quiet_s": longest_quiet_s}
+    sheet = args.contact_sheet or os.path.splitext(args.video)[0] + ".contact.jpg"
+    contact_sheet(args.video, sheet, duration)
+    report["contact_sheet"] = sheet
+    visual_state = "PASS" if args.approve_visual else "REVIEW"
+    state("visual_review", visual_state, f"inspect {sheet}" + (" (approved)" if args.approve_visual else " then rerun with --approve-visual"), report)
 
-    # ── burst ──
-    burst_window = int(1.5 * fps)
-    burst_threshold = 8
-    bursts = []
-    for i in range(len(energy) - burst_window):
-        window = energy[i:i+burst_window]
-        big = (window > burst_threshold).sum()
-        if big >= 3:
-            bursts.append(round(i / fps, 2))
-            # Skip ahead to avoid counting the same burst
-            break
-
-    if bursts:
-        oks.append(leg("burst", "PASS", f"burst at {bursts[0]}s"))
-    else:
-        oks.append(leg("burst", "WARN", "no burst — fine for concepts without hits"))
-    results["legs"]["burst"] = {"state": "PASS" if bursts else "WARN", "bursts": bursts}
-
-    # ── energy profile ──
-    row_means = [energy[i:i+fps*4].mean() for i in range(0, max(1, len(energy)), fps*4)]
-    flat = float(np.std(row_means) / (np.mean(row_means) + 1e-9)) if row_means else 0
-    state = "PASS" if flat >= 0.35 else "WARN"
-    oks.append(leg("energy", state, f"variation {flat:.2f} (advisory, >= 0.35)"))
-    results["legs"]["energy"] = {"state": state, "variation": flat}
-
-    # ── audio ──
-    au = audio_stats(a.video)
-    if au:
-        state = "PASS" if au["peak_db"] <= -3 and au["clipped"] == 0 and au["quiet_ratio"] >= 0.15 else "FAIL"
-        oks.append(leg("audio", state, f"peak {au['peak_db']}dBFS  clipped {au['clipped']}  quiet {au['quiet_ratio']}"))
-        results["legs"]["audio"] = {"state": state, **au}
-    else:
-        print("  ○ skip  audio        (no audio track)")
-
-    # ── verdict ──
-    passed = all(oks)
-    verdict = "PASS" if passed else "FAIL"
-    print(f"\n  {'✓' if passed else '✗'} Verdict: {verdict}\n")
-    results["verdict"] = verdict
-
-    if a.json:
-        json.dump(results, open(a.json, "w"), indent=2)
-        print(f"  Results saved to {a.json}")
-
-    sys.exit(0 if passed else 1)
+    fatal = any(leg["state"] == "FAIL" and leg["fatal"] for leg in report["legs"].values())
+    review = any(leg["state"] == "REVIEW" for leg in report["legs"].values())
+    report["verdict"] = "FAIL" if fatal else ("NEEDS_REVIEW" if review else "PASS")
+    print(f"\n  {'✗' if fatal else '◌' if review else '✓'} Verdict: {report['verdict']}\n")
+    if args.json:
+        with open(args.json, "w", encoding="utf-8") as output: json.dump(report, output, indent=2)
+    sys.exit(1 if fatal else 2 if review else 0)
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__": main()

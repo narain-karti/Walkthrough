@@ -1,0 +1,14 @@
+{
+  "title": "Clean capture quality smoke test",
+  "mode": "walkthrough",
+  "baseUrl": "./demo/index.html",
+  "outputDir": "./audit-recording",
+  "steps": [
+    { "id": "orient", "title": "Show fleet health", "holdMs": 700 },
+    {
+      "id": "range", "title": "Select the 30-day view",
+      "selector": "button#tab-30d", "action": "click", "zoomOnClick": true,
+      "waitFor": { "selector": "button#tab-30d.active" }, "holdMs": 900
+    }
+  ]
+}

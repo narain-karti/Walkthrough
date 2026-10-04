@@ -8,6 +8,8 @@ __pycache__/
 walkthrough-output/
 flagship-output/
 frames_analysis/
+audit-frames/
+audit-recording/
 
 # Temporary render artifacts
 *.webm

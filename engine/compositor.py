@@ -38,7 +38,12 @@ def main():
     print(f"[Walkthrough Compositor] Clip Budgets: C1={c1_len}s, C2={c2_len}s, C3={c3_len}s")
 
     act1_webm = os.path.join(raw_dir, "act1_intro.webm")
-    act2_webm = os.path.abspath("./walkthrough-output/raw_walkthrough.webm")
+    act2_candidates = [
+        os.path.abspath("./walkthrough-output/raw_walkthrough.mp4"),
+        os.path.abspath("./walkthrough-output/raw_walkthrough.webm"),
+        os.path.abspath("./walkthrough-output/walkthrough.mp4"),
+    ]
+    act2_webm = next((p for p in act2_candidates if os.path.exists(p)), act2_candidates[0])
     act3_webm = os.path.join(raw_dir, "act3_outro.webm")
 
     c1 = os.path.join(raw_dir, "c1.mp4")
@@ -78,11 +83,15 @@ def main():
     poster_output = os.path.join(flagship_dir, "flagship_showcase.jpg")
 
     escaped_srt = srt_file.replace('\\', '/').replace(':', '\\:')
+    # Reserve an external caption rail instead of painting captions on top of
+    # the product.  Product video retains its 16:9 geometry inside a restrained
+    # matte; captions only occupy the lower rail.
+    caption_canvas = "scale=1778:1000:flags=lanczos,pad=1920:1080:71:0:color=black"
     subtitle_filter = (
-        f"subtitles='{escaped_srt}':"
-        f"force_style='FontName=Arial,FontSize=16,PrimaryColour=&H00FFFFFF,"
-        f"OutlineColour=&H0009090B,BackColour=&H90101014,BorderStyle=3,Outline=1.5,"
-        f"Shadow=0,Alignment=2,MarginV=26'"
+        f"{caption_canvas},subtitles='{escaped_srt}':"
+        f"force_style='FontName=Arial,FontSize=13,PrimaryColour=&H00FFFFFF,"
+        f"OutlineColour=&H00101014,BackColour=&H00000000,BorderStyle=1,Outline=1.2,"
+        f"Shadow=0,Alignment=2,MarginV=20'"
     )
 
     sfx_file = os.path.join(flagship_dir, "flagship_sfx.wav")
