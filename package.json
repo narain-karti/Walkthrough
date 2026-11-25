@@ -1,0 +1,30 @@
+{
+  "name": "walkthrough",
+  "version": "1.0.0",
+  "description": "Code-driven and AI-agent-ready product demo video generator using Playwright, cursor/camera physics, edge-tts, and FFmpeg.",
+  "main": "bin/walkthrough.js",
+  "bin": {
+    "walkthrough": "bin/walkthrough.js"
+  },
+  "scripts": {
+    "demo": "node bin/walkthrough.js demo",
+    "test": "node tests/verify_positioning.js"
+  },
+  "keywords": [
+    "playwright",
+    "screen-recording",
+    "product-demo",
+    "walkthrough",
+    "ffmpeg",
+    "edge-tts",
+    "ai-agent"
+  ],
+  "author": "Narain Karti",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "playwright": "^1.63.0"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "title": "Nexus Pulse Cloud Observability Walkthrough",
+  "outputName": "flagship_showcase",
+  "voice": "en-US-AvaMultilingualNeural",
+  "baseUrl": "./demo/index.html",
+  "outputDir": "./flagship-output",
+  "cursorStart": [960, 1020],
+  "intro": {
+    "template": "./templates/act1_intro.html",
+    "narration": "Cloud telemetry is fragmented. We built Nexus Pulse to deliver sub-millisecond observability across global fleets."
+  },
+  "steps": [
+    {
+      "desc": "Switch to 30-Day metrics window",
+      "selector": "button#tab-30d",
+      "action": "click",
+      "zoomOnClick": true,
+      "zoom": 1.14,
+      "narration": "By clicking on the thirty-day window, our telemetry recalculates instantly, revealing sub-ten-millisecond latency."
+    },
+    {
+      "desc": "Filter microservices by typing polars",
+      "selector": "input#service-search",
+      "action": "type",
+      "text": "polars",
+      "typeDelay": 80,
+      "zoomOnClick": true,
+      "zoom": 1.14,
+      "narration": "Engineers can quickly isolate bottlenecks by searching for the active analytics worker."
+    },
+    {
+      "desc": "Trigger canary deploy and observe toast confirmation",
+      "selector": "button#btn-deploy",
+      "action": "click",
+      "zoomOnClick": true,
+      "zoom": 1.14,
+      "narration": "Triggering a canary deployment safely routes ten percent traffic across healthy edge clusters."
+    }
+  ],
+  "outro": {
+    "template": "./templates/act3_outro.html",
+    "narration": "Deployable in one command. Experience the future of real-time telemetry today."
+  }
+}
